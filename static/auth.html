@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MerchFlow — Sign In</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .auth-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .auth-logo {
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .auth-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .auth-tab {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .auth-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .auth-form { display: flex; flex-direction: column; gap: 14px; }
+    .auth-form label { display: flex; flex-direction: column; gap: 6px; }
+    .auth-form label span { font-size: 13px; color: var(--text-muted); }
+    .auth-form input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 11px 14px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .auth-form input:focus { border-color: var(--accent); }
+    .auth-form .btn-primary { margin-top: 6px; }
+    .auth-error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      color: #f87171;
+      font-size: 13px;
+      padding: 10px 14px;
+      display: none;
+    }
+    .auth-success {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 8px;
+      color: #4ade80;
+      font-size: 13px;
+      padding: 10px 14px;
+      display: none;
+    }
+    .auth-link {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+      text-align: center;
+      text-decoration: underline;
+    }
+    .auth-link:hover { opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">⚡ MerchFlow</div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab" onclick="switchTab('register')">Create Account</button>
+      </div>
+
+      <div id="error-msg" class="auth-error"></div>
+      <div id="success-msg" class="auth-success"></div>
+
+      <!-- LOGIN -->
+      <form class="auth-form" id="form-login" onsubmit="submitLogin(event)">
+        <label>
+          <span>Email</span>
+          <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+        </label>
+        <button class="btn-primary" type="submit" id="login-btn">Sign In</button>
+        <button type="button" class="auth-link" onclick="switchTab('forgot')">Forgot password?</button>
+      </form>
+
+      <!-- REGISTER -->
+      <form class="auth-form" id="form-register" style="display:none" onsubmit="submitRegister(event)">
+        <label>
+          <span>Email</span>
+          <input type="email" id="reg-email" placeholder="you@example.com" required autocomplete="email">
+        </label>
+        <label>
+          <span>Password <small style="color:var(--text-muted)">(min 8 characters)</small></span>
+          <input type="password" id="reg-password" placeholder="••••••••" required autocomplete="new-password">
+        </label>
+        <label>
+          <span>Confirm Password</span>
+          <input type="password" id="reg-password2" placeholder="••••••••" required autocomplete="new-password">
+        </label>
+        <button class="btn-primary" type="submit" id="reg-btn">Create Account</button>
+      </form>
+
+      <!-- FORGOT PASSWORD -->
+      <form class="auth-form" id="form-forgot" style="display:none" onsubmit="submitForgot(event)">
+        <p style="font-size:14px;color:var(--text-muted);margin:0">Enter your email and we'll send you a reset link.</p>
+        <label>
+          <span>Email</span>
+          <input type="email" id="forgot-email" placeholder="you@example.com" required autocomplete="email">
+        </label>
+        <button class="btn-primary" type="submit" id="forgot-btn">Send Reset Link</button>
+        <button type="button" class="auth-link" onclick="switchTab('login')">Back to Sign In</button>
+      </form>
+
+      <!-- RESET PASSWORD (shown when ?reset=TOKEN in URL) -->
+      <form class="auth-form" id="form-reset" style="display:none" onsubmit="submitReset(event)">
+        <p style="font-size:14px;color:var(--text-muted);margin:0">Enter your new password below.</p>
+        <label>
+          <span>New Password <small style="color:var(--text-muted)">(min 8 characters)</small></span>
+          <input type="password" id="reset-password" placeholder="••••••••" required autocomplete="new-password">
+        </label>
+        <label>
+          <span>Confirm New Password</span>
+          <input type="password" id="reset-password2" placeholder="••••••••" required autocomplete="new-password">
+        </label>
+        <button class="btn-primary" type="submit" id="reset-btn">Set New Password</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already logged in (unless resetting password)
+    const _resetToken = new URLSearchParams(location.search).get("reset");
+    if (!_resetToken && localStorage.getItem("mf_token")) location.href = "/";
+
+    // Show reset form if token is in URL
+    if (_resetToken) {
+      document.querySelector(".auth-tabs").style.display = "none";
+      document.getElementById("form-reset").style.display = "flex";
+    }
+
+    function switchTab(tab) {
+      const tabs = document.querySelectorAll(".auth-tab");
+      tabs[0].classList.toggle("active", tab === "login");
+      tabs[1].classList.toggle("active", tab === "register");
+      document.getElementById("form-login").style.display    = tab === "login"    ? "flex" : "none";
+      document.getElementById("form-register").style.display = tab === "register" ? "flex" : "none";
+      document.getElementById("form-forgot").style.display   = tab === "forgot"   ? "flex" : "none";
+      // Hide tabs when showing forgot form
+      document.querySelector(".auth-tabs").style.display = tab === "forgot" ? "none" : "flex";
+      hideMessages();
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("error-msg");
+      el.textContent = msg;
+      el.style.display = "block";
+      document.getElementById("success-msg").style.display = "none";
+    }
+    function showSuccess(msg) {
+      const el = document.getElementById("success-msg");
+      el.textContent = msg;
+      el.style.display = "block";
+      document.getElementById("error-msg").style.display = "none";
+    }
+    function hideMessages() {
+      document.getElementById("error-msg").style.display = "none";
+      document.getElementById("success-msg").style.display = "none";
+    }
+
+    async function submitLogin(e) {
+      e.preventDefault();
+      hideMessages();
+      const btn = document.getElementById("login-btn");
+      btn.disabled = true; btn.textContent = "Signing in…";
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email:    document.getElementById("login-email").value,
+            password: document.getElementById("login-password").value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(data.detail || "Login failed"); return; }
+        localStorage.setItem("mf_token", data.token);
+        localStorage.setItem("mf_email", data.email);
+        location.href = "/";
+      } finally {
+        btn.disabled = false; btn.textContent = "Sign In";
+      }
+    }
+
+    async function submitRegister(e) {
+      e.preventDefault();
+      hideMessages();
+      const p1 = document.getElementById("reg-password").value;
+      const p2 = document.getElementById("reg-password2").value;
+      if (p1 !== p2) { showError("Passwords do not match"); return; }
+      const btn = document.getElementById("reg-btn");
+      btn.disabled = true; btn.textContent = "Creating account…";
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email:    document.getElementById("reg-email").value,
+            password: p1,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(data.detail || "Registration failed"); return; }
+        localStorage.setItem("mf_token", data.token);
+        localStorage.setItem("mf_email", data.email);
+        location.href = "/";
+      } finally {
+        btn.disabled = false; btn.textContent = "Create Account";
+      }
+    }
+
+    async function submitForgot(e) {
+      e.preventDefault();
+      hideMessages();
+      const btn = document.getElementById("forgot-btn");
+      btn.disabled = true; btn.textContent = "Sending…";
+      try {
+        await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: document.getElementById("forgot-email").value }),
+        });
+        // Always show success to prevent email enumeration
+        showSuccess("If that email is registered, you'll receive a reset link shortly.");
+        document.getElementById("form-forgot").style.display = "none";
+      } finally {
+        btn.disabled = false; btn.textContent = "Send Reset Link";
+      }
+    }
+
+    async function submitReset(e) {
+      e.preventDefault();
+      hideMessages();
+      const p1 = document.getElementById("reset-password").value;
+      const p2 = document.getElementById("reset-password2").value;
+      if (p1 !== p2) { showError("Passwords do not match"); return; }
+      const btn = document.getElementById("reset-btn");
+      btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        const res = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: _resetToken, password: p1 }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(data.detail || "Reset failed"); return; }
+        showSuccess("Password updated! Redirecting to sign in…");
+        document.getElementById("form-reset").style.display = "none";
+        setTimeout(() => { location.href = "/auth.html"; }, 2000);
+      } finally {
+        btn.disabled = false; btn.textContent = "Set New Password";
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MerchFlow — Admin</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .admin-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .admin-tab {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .admin-tab.active {
+      background: rgba(108,99,255,0.12);
+      border-color: var(--accent);
+      color: #a8a3ff;
+    }
+    .stat-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 22px;
+      min-width: 120px;
+    }
+    .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge-tier-free { color: var(--text-muted); }
+    .badge-tier-pro  { color: #a78bfa; font-weight: 600; }
+    .export-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 7px 16px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .export-btn:hover { border-color: var(--accent); }
+    .empty { color: var(--text-muted); text-align: center; padding: 40px; }
+    .back-link {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="admin-header">
+    <div style="display:flex;align-items:center;gap:16px">
+      <div class="logo">⚡ MerchFlow</div>
+      <span style="color:var(--text-muted);font-size:13px">Admin</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="/" class="back-link">← Back to app</a>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="admin-tabs" style="margin-bottom:20px">
+    <button class="admin-tab active" onclick="showTab('waitlist')">Waitlist</button>
+    <button class="admin-tab" onclick="showTab('users')">Users</button>
+    <button class="admin-tab" onclick="showTab('feedback')">Feedback</button>
+  </div>
+
+  <!-- WAITLIST TAB -->
+  <div id="tab-waitlist">
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-value" id="wl-count">—</div>
+        <div class="stat-label">Total subscribers</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2>Waitlist</h2>
+        <button class="export-btn" onclick="exportWaitlist()">Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table id="wl-table">
+          <thead>
+            <tr><th>Email</th><th>Joined</th></tr>
+          </thead>
+          <tbody id="wl-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- USERS TAB -->
+  <div id="tab-users" style="display:none">
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-value" id="u-total">—</div>
+        <div class="stat-label">Total users</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="u-active">—</div>
+        <div class="stat-label">Active this month</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="u-images">—</div>
+        <div class="stat-label">Images this month</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2>Users</h2>
+        <button class="export-btn" onclick="exportUsers()">Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Email</th><th>Plan</th><th>Images this month</th><th>Registered</th></tr>
+          </thead>
+          <tbody id="u-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK TAB -->
+  <div id="tab-feedback" style="display:none">
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-value" id="fb-count">—</div>
+        <div class="stat-label">Total responses</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="fb-avg">—</div>
+        <div class="stat-label">Avg rating</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom:16px">Feedback</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Email</th><th>Rating</th><th>Comment</th><th>Date</th></tr>
+          </thead>
+          <tbody id="fb-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const token = localStorage.getItem("mf_token");
+  if (!token) location.href = "/auth.html";
+
+  function logout() {
+    localStorage.removeItem("mf_token");
+    localStorage.removeItem("mf_email");
+    location.href = "/auth.html";
+  }
+
+  function showTab(name) {
+    const tabs = ["waitlist", "users", "feedback"];
+    document.querySelectorAll(".admin-tab").forEach((t, i) =>
+      t.classList.toggle("active", tabs[i] === name)
+    );
+    tabs.forEach(t =>
+      document.getElementById("tab-" + t).style.display = t === name ? "block" : "none"
+    );
+  }
+
+  async function apiFetch(url) {
+    const res = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
+    if (res.status === 401) { logout(); return null; }
+    if (res.status === 403) { document.body.innerHTML = '<div style="padding:40px;color:#f87171;font-size:18px">Access denied.</div>'; return null; }
+    return res.json();
+  }
+
+  // --- Waitlist ---
+  let wlData = [];
+  async function loadWaitlist() {
+    const data = await apiFetch("/api/admin/waitlist");
+    if (!data) return;
+    wlData = data;
+    document.getElementById("wl-count").textContent = data.length;
+    const tbody = document.getElementById("wl-body");
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="2" class="empty">No subscribers yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${esc(r.email)}</td>
+        <td style="color:var(--text-muted)">${r.created_at.slice(0,16).replace("T"," ")}</td>
+      </tr>`).join("");
+  }
+
+  function exportWaitlist() {
+    const rows = [["email","joined"], ...wlData.map(r => [r.email, r.created_at.slice(0,16)])];
+    downloadCSV(rows, "waitlist.csv");
+  }
+
+  // --- Users ---
+  let uData = [];
+  async function loadUsers() {
+    const data = await apiFetch("/api/admin/users");
+    if (!data) return;
+    uData = data;
+    const active = data.filter(u => u.usage_count > 0).length;
+    const totalImages = data.reduce((s, u) => s + u.usage_count, 0);
+    document.getElementById("u-total").textContent  = data.length;
+    document.getElementById("u-active").textContent = active;
+    document.getElementById("u-images").textContent = totalImages;
+    const tbody = document.getElementById("u-body");
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">No users yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(u => `
+      <tr>
+        <td>${esc(u.email)}</td>
+        <td><span class="badge-tier-${u.tier}">${u.tier}</span></td>
+        <td>${u.usage_count} / 50</td>
+        <td style="color:var(--text-muted)">${u.created_at.slice(0,10)}</td>
+      </tr>`).join("");
+  }
+
+  function exportUsers() {
+    const rows = [["email","tier","images_this_month","registered"],
+      ...uData.map(u => [u.email, u.tier, u.usage_count, u.created_at.slice(0,10)])];
+    downloadCSV(rows, "users.csv");
+  }
+
+  // --- Utils ---
+  function downloadCSV(rows, filename) {
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  }
+
+  function esc(s) {
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // --- Feedback ---
+  async function loadFeedback() {
+    const data = await apiFetch("/api/admin/feedback");
+    if (!data) return;
+    document.getElementById("fb-count").textContent = data.length;
+    const avg = data.length
+      ? (data.reduce((s, r) => s + r.rating, 0) / data.length).toFixed(1)
+      : "—";
+    document.getElementById("fb-avg").textContent = avg ? avg + " ★" : "—";
+    const tbody = document.getElementById("fb-body");
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">No feedback yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td>${esc(r.email)}</td>
+        <td>${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</td>
+        <td style="max-width:340px;white-space:pre-wrap">${esc(r.comment || "—")}</td>
+        <td style="color:var(--text-muted)">${r.created_at.slice(0,16).replace("T"," ")}</td>
+      </tr>`).join("");
+  }
+
+  loadWaitlist();
+  loadUsers();
+  loadFeedback();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+.env
+*.db
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+/test_images/
+/test_batch.zip
+*.png
+*.jpg
+*.jpeg
+*.webp
+output.csv
