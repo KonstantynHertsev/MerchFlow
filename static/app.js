@@ -167,17 +167,17 @@ async function initPaddle() {
     const cfg = await res.json();
     paddlePriceId = cfg.paddle_price_id || "";
     if (cfg.paddle_client_token) {
-      const isSandbox = cfg.paddle_client_token.startsWith("test_");
-      const initConfig = {
+      if (cfg.paddle_client_token.startsWith("test_")) {
+        Paddle.Environment.set("sandbox");
+      }
+      Paddle.Initialize({
         token: cfg.paddle_client_token,
         eventCallback: function(event) {
           if (event.name === "checkout.completed") {
             setTimeout(() => location.reload(), 2000);
           }
         },
-      };
-      if (isSandbox) initConfig.environment = "sandbox";
-      Paddle.Initialize(initConfig);
+      });
     }
   } catch {}
 }
