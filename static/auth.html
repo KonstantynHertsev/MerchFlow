@@ -169,7 +169,7 @@
   <script>
     // Redirect if already logged in (unless resetting password)
     const _resetToken = new URLSearchParams(location.search).get("reset");
-    if (!_resetToken && localStorage.getItem("mf_token")) location.href = "/";
+    if (!_resetToken && localStorage.getItem("mf_token")) location.href = "/app.html";
 
     // Show reset form if token is in URL
     if (_resetToken) {
@@ -224,7 +224,7 @@
         if (!res.ok) { showError(data.detail || "Login failed"); return; }
         localStorage.setItem("mf_token", data.token);
         localStorage.setItem("mf_email", data.email);
-        location.href = "/";
+        location.href = "/app.html";
       } finally {
         btn.disabled = false; btn.textContent = "Sign In";
       }
@@ -251,7 +251,7 @@
         if (!res.ok) { showError(data.detail || "Registration failed"); return; }
         localStorage.setItem("mf_token", data.token);
         localStorage.setItem("mf_email", data.email);
-        location.href = "/";
+        location.href = "/app.html";
       } finally {
         btn.disabled = false; btn.textContent = "Create Account";
       }

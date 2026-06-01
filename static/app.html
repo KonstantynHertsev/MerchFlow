@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MerchFlow</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+</head>
+<body>
+  <div class="app">
+
+    <!-- HEADER -->
+    <header>
+      <div class="header-left">
+        <div class="logo">⚡ MerchFlow</div>
+        <div class="subtitle">Upload your designs → get a ready XLSX for your upload tool</div>
+      </div>
+      <div class="header-right">
+        <span class="usage-badge" id="usage-badge"></span>
+        <button class="btn-upgrade hidden" id="upgrade-btn" onclick="upgradeToPro()">Upgrade to Pro — $17/mo</button>
+        <span class="user-email" id="user-email"></span>
+        <button class="btn-logout" onclick="logout()">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- PROFILE SETTINGS -->
+    <section class="card" id="settings-card">
+      <div class="settings-header">
+        <h2>Profile</h2>
+        <div class="profile-controls">
+          <select id="profile-select" onchange="loadProfile()"></select>
+          <button class="btn-icon" title="Save profile" onclick="saveProfile()">💾</button>
+          <button class="btn-icon btn-icon-danger" title="Delete profile" onclick="deleteProfile()">🗑</button>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <label>
+          <span>Brand</span>
+          <input type="text" id="brand" placeholder="Your brand name">
+        </label>
+        <label>
+          <span>Price ($)</span>
+          <input type="text" id="price" placeholder="19.99">
+        </label>
+        <label>
+          <span>Colors (comma-separated)</span>
+          <input type="text" id="colors" placeholder="Black,Navy,...">
+        </label>
+        <label>
+          <span>Department</span>
+          <select id="department">
+            <option value="mens">Men's</option>
+            <option value="womens">Women's</option>
+            <option value="youth">Youth</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <!-- SOFTWARE TARGET -->
+    <section class="card">
+      <h2>Upload Software</h2>
+      <div class="software-grid">
+        <label class="software-option">
+          <input type="radio" name="software" value="lazy_merch" checked>
+          <span class="software-label">LazyMerch</span>
+        </label>
+        <label class="software-option">
+          <input type="radio" name="software" value="flying_upload">
+          <span class="software-label">Flying Upload</span>
+        </label>
+        <label class="software-option">
+          <input type="radio" name="software" value="merch_titans">
+          <span class="software-label">Merch Titans</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- UPLOAD ZONE -->
+    <section class="card">
+      <h2>Upload Files</h2>
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">📦</div>
+        <div class="upload-text">Drag & drop a ZIP archive or images here</div>
+        <div class="upload-hint">PNG, JPG, WEBP or a .zip with multiple designs</div>
+        <button class="btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
+          Choose File
+        </button>
+        <input type="file" id="file-input" accept=".zip,.png,.jpg,.jpeg,.webp" hidden>
+      </div>
+      <div id="file-name" class="file-name hidden"></div>
+      <button class="btn-primary" id="run-btn" disabled onclick="runPipeline()">
+        Generate →
+      </button>
+    </section>
+
+    <!-- PROGRESS -->
+    <section class="card hidden" id="progress-card">
+      <h2>Processing...</h2>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-label" id="progress-label">Sending to AI...</div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="card hidden" id="results-card">
+      <div class="results-header">
+        <h2>Results <span id="results-count"></span></h2>
+        <button class="btn-primary" id="download-btn" onclick="downloadCSV()">
+          Download XLSX
+        </button>
+      </div>
+      <div id="warnings-block" class="warnings-block hidden">
+        <strong>⚠️ Trademark warning:</strong> some listings contain potentially protected words. Review before uploading to Amazon.
+      </div>
+      <div id="truncated-block" class="truncated-block hidden">
+        <strong>✂️ Truncated:</strong> some fields exceeded Amazon character limits and were trimmed at a word boundary.
+      </div>
+      <div id="listings-list"></div>
+    </section>
+
+  </div>
+
+  <!-- LIMIT MODAL -->
+  <div class="modal-overlay hidden" id="limit-modal">
+    <div class="modal">
+      <div class="modal-icon">🚀</div>
+      <h2>You've used all 50 free images</h2>
+      <p>Upgrade to Pro for <strong>unlimited images</strong> every month. No restrictions, no waiting.</p>
+      <button class="btn-primary" style="width:100%;font-size:16px;padding:14px" onclick="upgradeToPro()">
+        Upgrade to Pro — $17/month
+      </button>
+      <div style="text-align:center;color:var(--text-muted);font-size:13px;margin-top:12px">
+        Secure payment via Paddle · Cancel anytime
+      </div>
+      <button class="modal-close" onclick="closeModal()">Maybe later</button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK BUTTON -->
+  <button class="feedback-fab" onclick="openFeedback()" title="Send feedback">💬</button>
+
+  <!-- FEEDBACK MODAL -->
+  <div class="modal-overlay hidden" id="feedback-modal">
+    <div class="modal" style="max-width:400px">
+      <h2 style="margin-bottom:8px">Share your feedback</h2>
+      <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">How is MerchFlow working for you?</p>
+
+      <div class="star-row" id="star-row">
+        <span class="star" data-v="1" onclick="setRating(1)">★</span>
+        <span class="star" data-v="2" onclick="setRating(2)">★</span>
+        <span class="star" data-v="3" onclick="setRating(3)">★</span>
+        <span class="star" data-v="4" onclick="setRating(4)">★</span>
+        <span class="star" data-v="5" onclick="setRating(5)">★</span>
+      </div>
+
+      <textarea id="feedback-comment" placeholder="Tell us what you think, what's missing, or what could be better…" rows="4"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:12px;font-size:14px;resize:vertical;outline:none;margin-top:16px;font-family:inherit"></textarea>
+
+      <div id="feedback-error" style="color:#f87171;font-size:13px;margin-top:8px;display:none"></div>
+      <div id="feedback-success" style="color:#4ade80;font-size:13px;margin-top:8px;display:none">Thanks! Your feedback was sent.</div>
+
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn-primary" style="flex:1" onclick="submitFeedback()">Send</button>
+        <button class="modal-close" style="flex:1;margin:0" onclick="closeFeedback()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
