@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MerchFlow</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 </head>
 <body>
   <div class="app">
@@ -17,6 +18,7 @@
       </div>
       <div class="header-right">
         <span class="usage-badge" id="usage-badge"></span>
+        <button class="btn-upgrade hidden" id="upgrade-btn" onclick="upgradeToPro()">Upgrade to Pro — $17/mo</button>
         <span class="user-email" id="user-email"></span>
         <button class="btn-logout" onclick="logout()">Sign Out</button>
       </div>
@@ -126,13 +128,12 @@
     <div class="modal">
       <div class="modal-icon">🚀</div>
       <h2>You've used all 50 free images</h2>
-      <p>Your free plan resets on the 1st of each month. Want unlimited images? Join the Pro waitlist and be first to know when it launches.</p>
-      <form class="waitlist-form" onsubmit="submitWaitlist(event)">
-        <input type="email" id="waitlist-email" placeholder="your@email.com" required>
-        <button class="btn-primary" type="submit" id="waitlist-btn">Join Waitlist</button>
-      </form>
-      <div id="waitlist-success" class="waitlist-success hidden">
-        You're on the list! We'll reach out when Pro is ready.
+      <p>Upgrade to Pro for <strong>unlimited images</strong> every month. No restrictions, no waiting.</p>
+      <button class="btn-primary" style="width:100%;font-size:16px;padding:14px" onclick="upgradeToPro()">
+        Upgrade to Pro — $17/month
+      </button>
+      <div style="text-align:center;color:var(--text-muted);font-size:13px;margin-top:12px">
+        Secure payment via Paddle · Cancel anytime
       </div>
       <button class="modal-close" onclick="closeModal()">Maybe later</button>
     </div>

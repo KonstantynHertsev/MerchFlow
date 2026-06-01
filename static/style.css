@@ -70,6 +70,21 @@ header {
 }
 .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
 
+.btn-upgrade {
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-upgrade:hover { opacity: 0.85; }
+
+.usage-badge.pro { background: #312e81; color: #a5b4fc; }
+
 .usage-badge {
   font-size: 12px;
   padding: 4px 10px;

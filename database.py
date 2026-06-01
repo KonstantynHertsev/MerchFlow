@@ -9,13 +9,14 @@ FREE_LIMIT = 50
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    email          TEXT    UNIQUE NOT NULL,
-    password_hash  TEXT    NOT NULL,
-    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
-    tier           TEXT    NOT NULL DEFAULT 'free',
-    usage_month    TEXT    NOT NULL DEFAULT '',
-    usage_count    INTEGER NOT NULL DEFAULT 0
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    email                  TEXT    UNIQUE NOT NULL,
+    password_hash          TEXT    NOT NULL,
+    created_at             TEXT    NOT NULL DEFAULT (datetime('now')),
+    tier                   TEXT    NOT NULL DEFAULT 'free',
+    usage_month            TEXT    NOT NULL DEFAULT '',
+    usage_count            INTEGER NOT NULL DEFAULT 0,
+    paddle_subscription_id TEXT    NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS waitlist (
@@ -53,6 +54,8 @@ def init_db():
             con.execute("ALTER TABLE users ADD COLUMN usage_month TEXT NOT NULL DEFAULT ''")
         if "usage_count" not in cols:
             con.execute("ALTER TABLE users ADD COLUMN usage_count INTEGER NOT NULL DEFAULT 0")
+        if "paddle_subscription_id" not in cols:
+            con.execute("ALTER TABLE users ADD COLUMN paddle_subscription_id TEXT NOT NULL DEFAULT ''")
 
 
 @contextmanager
@@ -187,6 +190,22 @@ def use_reset_token(token: str, new_password_hash: str) -> bool:
             "UPDATE users SET password_hash = ? WHERE id = ?", (new_password_hash, row["user_id"])
         )
         return True
+
+
+def set_user_tier(user_id: int, tier: str, subscription_id: str = ""):
+    with _conn() as con:
+        con.execute(
+            "UPDATE users SET tier = ?, paddle_subscription_id = ? WHERE id = ?",
+            (tier, subscription_id, user_id),
+        )
+
+
+def set_user_tier_by_subscription(subscription_id: str, tier: str):
+    with _conn() as con:
+        con.execute(
+            "UPDATE users SET tier = ? WHERE paddle_subscription_id = ?",
+            (tier, subscription_id),
+        )
 
 
 def get_all_users() -> list[dict]:

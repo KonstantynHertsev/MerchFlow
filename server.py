@@ -4,6 +4,9 @@ FastAPI backend — auth + pipeline.
 
 import asyncio
 import base64
+import hashlib
+import hmac
+import json
 import os
 import secrets
 import shutil
@@ -17,7 +20,7 @@ load_dotenv()
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, Form, Request, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -28,7 +31,10 @@ import auth
 import database
 import email_sender
 
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
+ADMIN_EMAIL             = os.getenv("ADMIN_EMAIL", "")
+PADDLE_WEBHOOK_SECRET   = os.getenv("PADDLE_WEBHOOK_SECRET", "")
+PADDLE_CLIENT_TOKEN     = os.getenv("PADDLE_CLIENT_TOKEN", "")
+PADDLE_PRICE_ID         = os.getenv("PADDLE_PRICE_ID", "")
 from ai_vision import get_listing_from_image
 from tm_check import check_listing
 from csv_writer import build_output, FORMATS
@@ -112,15 +118,16 @@ def login(body: AuthBody):
 
 @app.get("/api/auth/me")
 def me(user: dict = Depends(get_current_user)):
-    month = _current_month()
-    used  = database.get_usage(user["id"], month)
+    month  = _current_month()
+    is_pro = user["tier"] == "pro"
+    used   = 0 if is_pro else database.get_usage(user["id"], month)
     return {
-        "id":         user["id"],
-        "email":      user["email"],
-        "tier":       user["tier"],
-        "usage":      used,
-        "limit":      database.FREE_LIMIT,
-        "remaining":  max(0, database.FREE_LIMIT - used),
+        "id":        user["id"],
+        "email":     user["email"],
+        "tier":      user["tier"],
+        "usage":     used,
+        "limit":     None if is_pro else database.FREE_LIMIT,
+        "remaining": None if is_pro else max(0, database.FREE_LIMIT - used),
     }
 
 
@@ -181,6 +188,56 @@ def reset_password(body: ResetPasswordBody):
     new_hash = auth.hash_password(body.password)
     if not database.use_reset_token(body.token, new_hash):
         raise HTTPException(400, "Invalid or expired reset link")
+    return {"ok": True}
+
+
+@app.get("/api/config")
+def get_config():
+    return {
+        "paddle_client_token": PADDLE_CLIENT_TOKEN,
+        "paddle_price_id":     PADDLE_PRICE_ID,
+    }
+
+
+@app.post("/api/paddle/webhook")
+async def paddle_webhook(request: Request):
+    body = await request.body()
+
+    if PADDLE_WEBHOOK_SECRET:
+        sig_header = request.headers.get("Paddle-Signature", "")
+        parts = dict(p.split("=", 1) for p in sig_header.split(";") if "=" in p)
+        ts = parts.get("ts", "")
+        h1 = parts.get("h1", "")
+        signed = f"{ts}:{body.decode()}"
+        expected = hmac.new(
+            PADDLE_WEBHOOK_SECRET.encode(),
+            signed.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        if not hmac.compare_digest(expected, h1):
+            raise HTTPException(400, "Invalid signature")
+
+    payload = json.loads(body)
+    event_type = payload.get("event_type", "")
+    data = payload.get("data", {})
+
+    if event_type == "subscription.activated":
+        custom_data = data.get("custom_data") or {}
+        user_id = custom_data.get("user_id")
+        sub_id = data.get("id", "")
+        if user_id:
+            database.set_user_tier(int(user_id), "pro", sub_id)
+
+    elif event_type in ("subscription.cancelled", "subscription.paused"):
+        sub_id = data.get("id", "")
+        if sub_id:
+            database.set_user_tier_by_subscription(sub_id, "free")
+
+    elif event_type == "subscription.resumed":
+        sub_id = data.get("id", "")
+        if sub_id:
+            database.set_user_tier_by_subscription(sub_id, "pro")
+
     return {"ok": True}
 
 

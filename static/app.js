@@ -5,6 +5,10 @@ let currentSoftware = "lazy_merch";
 let currentBatchId = null;
 let allListings = [];
 let currentProfile = {};
+let currentUserId = null;
+let currentUserEmail = null;
+let currentTier = "free";
+let paddlePriceId = "";
 
 // --- Auth guard ---
 function getToken() { return localStorage.getItem("mf_token"); }
@@ -147,6 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Show email in header + load usage
   document.getElementById("user-email").textContent = localStorage.getItem("mf_email") || "";
+  initPaddle();
   loadUsage();
 
   // Auto-save on any field change
@@ -154,6 +159,34 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById(id).addEventListener("change", autoSaveCurrentFields);
   });
 });
+
+// --- Paddle ---
+async function initPaddle() {
+  try {
+    const res = await fetch("/api/config");
+    const cfg = await res.json();
+    paddlePriceId = cfg.paddle_price_id || "";
+    if (cfg.paddle_client_token) {
+      Paddle.Initialize({
+        token: cfg.paddle_client_token,
+        eventCallback: function(event) {
+          if (event.name === "checkout.completed") {
+            setTimeout(() => location.reload(), 2000);
+          }
+        },
+      });
+    }
+  } catch {}
+}
+
+function upgradeToPro() {
+  if (!paddlePriceId) { alert("Payment not configured yet."); return; }
+  Paddle.Checkout.open({
+    items: [{ priceId: paddlePriceId, quantity: 1 }],
+    customer: { email: currentUserEmail },
+    customData: { user_id: String(currentUserId) },
+  });
+}
 
 // --- Usage ---
 async function loadUsage() {
@@ -163,15 +196,29 @@ async function loadUsage() {
     });
     if (res.status === 401) { logout(); return; }
     const data = await res.json();
-    updateUsageBadge(data.usage, data.limit);
+    currentUserId    = data.id;
+    currentUserEmail = data.email;
+    currentTier      = data.tier;
+    updateUsageBadge(data.usage, data.limit, data.tier);
   } catch {}
 }
 
-function updateUsageBadge(used, limit) {
-  const badge = document.getElementById("usage-badge");
+function updateUsageBadge(used, limit, tier) {
+  const badge      = document.getElementById("usage-badge");
+  const upgradeBtn = document.getElementById("upgrade-btn");
+
+  if (tier === "pro") {
+    badge.textContent = "Pro — Unlimited";
+    badge.className   = "usage-badge pro";
+    upgradeBtn.classList.add("hidden");
+    return;
+  }
+
   const remaining = limit - used;
   badge.textContent = `${used} / ${limit} images`;
-  badge.className = "usage-badge" + (remaining === 0 ? " full" : remaining <= 10 ? " warning" : "");
+  badge.className   = "usage-badge" + (remaining === 0 ? " full" : remaining <= 10 ? " warning" : "");
+  upgradeBtn.classList.remove("hidden");
+
   if (remaining === 0) {
     document.getElementById("run-btn").disabled = true;
     showLimitModal();
@@ -277,7 +324,7 @@ async function runPipeline() {
   };
   renderResults(allListings);
   setProgress(false);
-  if (data.usage !== undefined) updateUsageBadge(data.usage, data.limit);
+  if (data.usage !== undefined) updateUsageBadge(data.usage, data.limit, currentTier);
   if (data.remaining === 0) showLimitModal();
 }
 
